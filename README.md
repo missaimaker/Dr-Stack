@@ -75,24 +75,6 @@ Open your browser → **localhost:5173** ✅
 
 ---
 
-## Project Structure
-drstack/
-├── src/
-│   ├── components/
-│   │   ├── UrgencyBadge.jsx   # Emergency / Urgent / Non-urgent alert
-│   │   └── ClinicCard.jsx     # Free clinic result card
-│   ├── App.jsx                # Main UI
-│   ├── triage.js              # Gemini AI logic
-│   ├── clinics.js             # HRSA clinic finder
-│   ├── main.jsx               # Entry point
-│   └── index.css              # Styles
-├── .env                       # Your API keys (never commit this!)
-├── index.html
-├── vite.config.js
-└── package.json
-
----
-
 ## Disclaimer
 
 Dr. Stack is not a medical device and does not provide medical diagnoses. Always consult a licensed healthcare provider for medical advice.
