@@ -29,17 +29,17 @@ export default function MessageBubble({ msg }) {
     >
       {!isUser && (
         <div
-          className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center mr-2 shrink-0 mt-1"
+          className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center mr-2 shrink-0 mt-1"
           aria-hidden
         >
-          <Heart size={14} className="text-white" />
+          <Heart size={14} className="text-amber-800" />
         </div>
       )}
       <div
         className={`max-w-[min(78%,28rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           isUser
-            ? 'bg-teal-600 text-white rounded-tr-sm'
-            : 'bg-white border border-stone-100 text-stone-800 rounded-tl-sm shadow-sm'
+            ? 'bg-amber-700 text-white rounded-tr-sm shadow-sm'
+            : 'bg-[#fffaf2] border border-[#e9dcc7] text-slate-800 rounded-tl-sm shadow-sm'
         }`}
       >
         {renderContent(msg.content)}
