@@ -9,9 +9,85 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: #fafaf7;
-  color: #1c1917;
+  background: #f7efe3;
+  color: #0f172a;
   margin: 0;
+}
+
+.bg-health-base {
+  background:
+    radial-gradient(900px 420px at 0% -18%, rgba(120, 53, 15, 0.12), transparent 55%),
+    radial-gradient(680px 320px at 100% 0%, rgba(245, 222, 179, 0.28), transparent 50%),
+    #f7efe3;
+}
+
+.glass-panel {
+  background: rgba(255, 250, 242, 0.95);
+  border: 1px solid #e9dcc7;
+  box-shadow: 0 6px 20px rgba(120, 53, 15, 0.08);
+}
+
+.ui-card {
+  background: #fffaf2;
+  border: 1px solid #e9dcc7;
+  border-radius: 1rem;
+  box-shadow: 0 12px 32px rgba(120, 53, 15, 0.08);
+}
+
+.ui-input {
+  background: #fffdf8;
+  border: 1px solid #d7c7ac;
+  color: #0f172a;
+  border-radius: 0.75rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.ui-input::placeholder {
+  color: #64748b;
+}
+.ui-input:focus {
+  outline: none;
+  border-color: #b45309;
+  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.2);
+}
+
+.ui-button {
+  border-radius: 0.75rem;
+  border: 1px solid #92400e;
+  background: linear-gradient(135deg, #a16207 0%, #92400e 100%);
+  color: #ffffff;
+  font-weight: 600;
+  transition: transform 140ms ease, filter 140ms ease;
+}
+.ui-button:hover {
+  filter: brightness(1.05);
+}
+.ui-button:active {
+  transform: translateY(1px);
+}
+
+.ui-chip {
+  border-radius: 9999px;
+  border: 1px solid #d7c7ac;
+  background: #f6ecdc;
+  color: #7c2d12;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.ui-chip:hover {
+  background: #efe1c8;
+  color: #78350f;
+  border-color: #cdb58f;
+}
+
+.subtle-divider {
+  border-color: #e9dcc7;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -35,4 +111,4 @@ body {
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #c2410c66; border-radius: 3px; }
