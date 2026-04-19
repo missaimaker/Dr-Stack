@@ -1,32 +1,29 @@
-const SYSTEM_PROMPT = `You are Dr. Stack  — a caring AI health navigator built at Hook 'Em Hacks 2026.
-Your job: help uninsured patients understand symptoms, assess urgency, and find free care.
-
-PERSONALITY: Warm, clear, occasionally drops a light CS joke. Never snarky about health.
-
-RULES:
-- NEVER diagnose. Say "this may suggest..." not "you have..."
-- ALWAYS recommend professional care for serious symptoms
-- After 3-4 messages assess urgency with EXACTLY one of:
-  [URGENCY:EMERGENCY] [URGENCY:URGENT] [URGENCY:NON-URGENT]
-- Chest pain / difficulty breathing / stroke signs → immediately output [URGENCY:EMERGENCY]
-- Keep responses to 3-5 sentences. Ask one clarifying question at a time.`
-
 function mockTriageReply(messages) {
   const userMessages = messages.filter(m => m.role === 'user').map(m => m.content.toLowerCase())
   const lastUser = userMessages[userMessages.length - 1] || ''
   const fullUserContext = userMessages.join(' ')
   const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')?.content?.toLowerCase() || ''
-  const emergencyHints = ['chest pain', 'trouble breathing', 'shortness of breath', 'stroke', 'fainted']
-  const urgentHints = ['fever', 'vomit', 'infection', 'severe pain', 'blood']
+  const emergencyPattern =
+    /\b(chest pain|trouble breathing|shortness of breath|difficulty (in )?breathing|can't breathe|cannot breathe|breathless|stroke|fainted)\b/
+  const urgentHints = ['fever', 'vomit', 'infection', 'severe pain', 'blood', 'shivering']
   const redFlagHints = ['neck stiffness', 'vision changes', 'confusion', 'weakness', 'numbness']
   const hasHeadache = fullUserContext.includes('headache') || fullUserContext.includes('migraine')
-  const mentionsDuration = /\b(\d+)\s*(day|days|week|weeks)\b/.test(lastUser)
+  const mentionsDuration =
+    /\b(\d+)\s*(day|days|week|weeks|month|months)\b/i.test(lastUser) ||
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(day|days|week|weeks)\b/i.test(lastUser)
+  const askedHowLong =
+    lastAssistant.includes('how long have') ||
+    lastAssistant.includes('how long') ||
+    lastAssistant.includes('how many days')
+  const hasRespiratoryVirus = /\b(covid|corona|coronavirus|rona|covid-19|covid19)\b/.test(fullUserContext)
   const mentionsWorsening = /worse|worsening|getting worse|severe/.test(lastUser)
   const isYes = /^(y|yes|yeah|yep|sure|i do|they do|i have|they have)\b/.test(lastUser.trim())
   const isNo = /^(n|no|nope|nah|not really|i don't|dont|they don't|they dont)\b/.test(lastUser.trim())
   const isAcknowledgement = /^(ok|okay|thanks|thank you|got it|alright)\b/.test(lastUser.trim())
+  const answeredSymptomPromptWithBreathing =
+    lastAssistant.includes('what symptom is bothering you most') && /\b(breath|breathing)\b/.test(lastUser)
 
-  if (emergencyHints.some(h => lastUser.includes(h))) {
+  if (emergencyPattern.test(lastUser) || answeredSymptomPromptWithBreathing) {
     return '[URGENCY:EMERGENCY] Your symptoms may need emergency care. Please call 911 or go to the nearest ER now. If someone is with you, ask them to help you get care immediately.'
   }
   if (urgentHints.some(h => lastUser.includes(h))) {
@@ -63,39 +60,42 @@ function mockTriageReply(messages) {
   if (hasHeadache) {
     return '[URGENCY:NON-URGENT] Thanks for sharing. Most headaches are not emergencies, but context matters. Have you had this headache for more than 24 hours, and do you have any red-flag symptoms like vision changes, fever, vomiting, weakness, or confusion?'
   }
+
+  // User answered "how long?" — don't repeat the same question.
+  if (askedHowLong && mentionsDuration) {
+    const longCourse =
+      /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s*(week|weeks|month|months)\b/i.test(lastUser) ||
+      /\b(4|four)\s*weeks?\b/i.test(lastUser)
+    if (hasRespiratoryVirus || longCourse) {
+      return '[URGENCY:NON-URGENT] Thanks—that context helps. I can’t diagnose COVID-19 here, but symptoms lasting weeks are worth a clinician visit for guidance and testing. Seek emergency care for trouble breathing, chest pain, confusion, or bluish lips. Right now: do you have fever, cough, or shortness of breath?'
+    }
+    return '[URGENCY:NON-URGENT] Got it. If anything gets suddenly worse (breathing, chest pain, confusion), seek emergency care. Otherwise, what symptom is bothering you most today?'
+  }
+
+  // COVID/corona — clearer first reply than the generic fallback.
+  if (hasRespiratoryVirus && !askedHowLong) {
+    return '[URGENCY:NON-URGENT] Thanks for sharing. I can’t diagnose COVID-19 from chat. How long have you had symptoms, and do you currently have fever, cough, or trouble breathing?'
+  }
+
   return '[URGENCY:NON-URGENT] Thanks for sharing. This may be non-urgent, but you should still check with a clinician, especially if symptoms continue. How long have you had these symptoms?'
 }
 
 export async function triageChat(messages) {
   const useMock = import.meta.env.VITE_USE_MOCK_TRIAGE === 'true'
-  if (useMock) return mockTriageReply(messages)
-
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY
-  if (!apiKey) {
-    throw new Error('Missing API key. Add VITE_GEMINI_API_KEY to your .env and restart the dev server.')
+  if (useMock) {
+    return {
+      reply: mockTriageReply(messages),
+      degraded: true,
+      degradedReason: 'mock_mode',
+    }
   }
-  if (!apiKey.startsWith('AIza')) {
-    throw new Error('Your VITE_GEMINI_API_KEY looks invalid. Gemini keys usually start with "AIza".')
-  }
-
-  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+  const res = await fetch('/api/triage', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey,
     },
     body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: SYSTEM_PROMPT }],
-      },
-      contents: messages.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      })),
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 700,
-      },
+      messages,
     }),
   })
 
@@ -108,15 +108,20 @@ export async function triageChat(messages) {
     }
     const msg =
       details?.error?.message ||
+      details?.error ||
       details?.message ||
-      `Gemini API error (${res.status}).`
+      `Triage API error (${res.status}).`
     throw new Error(msg)
   }
 
   const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim()
+  const text = data?.reply?.trim?.()
   if (!text) throw new Error('Gemini returned an empty response.')
-  return text
+  return {
+    reply: text,
+    degraded: Boolean(data?.degraded),
+    degradedReason: data?.degradedReason || null,
+  }
 }
 
 export function parseUrgency(text) {
